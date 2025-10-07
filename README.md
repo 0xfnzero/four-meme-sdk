@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/four-trading-sdk.svg)](https://www.npmjs.com/package/four-trading-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-TypeScript SDK for trading tokens on the FOUR launch platform on Binance Smart Chain (BSC).
+TypeScript SDK for trading tokens on the Four.Meme launch platform on Binance Smart Chain (BSC).
 
 ## 🚀 Features
 
