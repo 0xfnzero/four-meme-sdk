@@ -7,7 +7,7 @@ import { FourTrading, BuyParams, SellParams, FourTradingConfig } from '../src/fo
 async function main() {
   // Configuration
   const config: FourTradingConfig = {
-    rpcUrl: 'https://bsc-dataseed1.binance.org/', // BSC mainnet
+    rpcUrl: 'https://bsc-dataseed.bnbchain.org', // BSC mainnet
     // rpcUrl: 'https://data-seed-prebsc-1-s1.binance.org:8545/', // BSC testnet
     privateKey: process.env.PRIVATE_KEY || 'YOUR_PRIVATE_KEY',
     contractAddress: '0x5c952063c7fc8610FFDB798152D69F0B9550762b',

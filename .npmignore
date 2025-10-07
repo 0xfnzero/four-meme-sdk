@@ -18,6 +18,7 @@ tsconfig.json
 # Test files
 *.test.js
 *.spec.js
+test-install.js
 coverage/
 
 # Documentation (except main README)

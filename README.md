@@ -18,14 +18,16 @@ TypeScript SDK for trading tokens on the FOUR launch platform on Binance Smart C
 ## 📦 Installation
 
 ```bash
-npm install four-trading-sdk ethers
+npm install four-trading-sdk
 ```
 
 or
 
 ```bash
-yarn add four-trading-sdk ethers
+yarn add four-trading-sdk
 ```
+
+> **Note**: `ethers` is automatically installed as a dependency, no need to install it separately. See [DEPENDENCIES.md](./DEPENDENCIES.md) for details.
 
 ## 🔧 Quick Start
 
@@ -35,7 +37,7 @@ yarn add four-trading-sdk ethers
 import { FourTrading } from 'four-trading-sdk';
 
 const trading = new FourTrading({
-  rpcUrl: 'https://bsc-dataseed1.binance.org/',
+  rpcUrl: 'https://bsc-dataseed.bnbchain.org',
   privateKey: process.env.PRIVATE_KEY!,
   contractAddress: '0x5c952063c7fc8610FFDB798152D69F0B9550762b', // Optional, default is FOUR platform
 });
@@ -214,7 +216,7 @@ import { FourTrading } from 'four-trading-sdk';
 async function main() {
   // Initialize SDK
   const trading = new FourTrading({
-    rpcUrl: 'https://bsc-dataseed1.binance.org/',
+    rpcUrl: 'https://bsc-dataseed.bnbchain.org',
     privateKey: process.env.PRIVATE_KEY!,
   });
 
@@ -256,13 +258,17 @@ main().catch(console.error);
 
 ## 🌐 RPC Endpoints
 
-### BSC Mainnet
-- `https://bsc-dataseed1.binance.org/`
-- `https://bsc-dataseed2.binance.org/`
-- `https://bsc-dataseed3.binance.org/`
+### BSC Mainnet (Recommended)
+- `https://bsc-dataseed.bnbchain.org` (Official, recommended)
+- `https://bsc-dataseed1.bnbchain.org`
+- `https://bsc-dataseed2.bnbchain.org`
+- `https://bsc-dataseed3.bnbchain.org`
+- `https://bsc-dataseed4.bnbchain.org`
 
 ### BSC Testnet
 - `https://data-seed-prebsc-1-s1.binance.org:8545/`
+
+> **Note**: You can use any BSC-compatible RPC endpoint by passing your custom URL to the `rpcUrl` parameter.
 
 ## 🔒 Security
 
