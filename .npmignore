@@ -1,0 +1,35 @@
+# Source files (only ship compiled dist/)
+src/
+examples/
+*.ts
+!*.d.ts
+
+# Build config
+tsconfig.json
+.gitignore
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files
+*.test.js
+*.spec.js
+coverage/
+
+# Documentation (except main README)
+FOUR_TRADING_README.md
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

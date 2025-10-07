@@ -1,0 +1,45 @@
+{
+  "name": "four-trading-sdk",
+  "version": "1.1.0",
+  "description": "TypeScript SDK for trading tokens on the FOUR launch platform (BSC)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "example": "ts-node examples/fourTradingExample.ts"
+  },
+  "keywords": [
+    "bsc",
+    "binance-smart-chain",
+    "trading",
+    "four",
+    "defi",
+    "web3",
+    "ethereum",
+    "sdk"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}
