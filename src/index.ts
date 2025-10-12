@@ -28,6 +28,39 @@ export { FOUR_TRADING_ABI } from './abi';
 
 export { PriceCalculator, PriceInfo } from './priceCalculator';
 
+// Error classes
+export {
+  FourTradingError,
+  ValidationError,
+  InvalidAddressError,
+  InvalidAmountError,
+  InsufficientBalanceError,
+  TransactionFailedError,
+  ConnectionError,
+  GasConfigurationError,
+  SlippageExceededError,
+  FeeExceedsAmountError,
+} from './errors';
+
+// Logger
+export { Logger, LogLevel, LoggerConfig } from './logger';
+
+// Cache
+export { Cache, CacheConfig } from './cache';
+
+// Validator
+export { Validator } from './validator';
+
+// Performance monitoring
+export { PerformanceMonitor, PerformanceMetrics } from './performance';
+
+// WebSocket manager
+export { WebSocketManager, WebSocketManagerConfig } from './websocketManager';
+
+// Constants
+export * from './constants';
+
+// Utility functions
 export {
   parseTradeEvents,
   parseTokenCreateEvent,
