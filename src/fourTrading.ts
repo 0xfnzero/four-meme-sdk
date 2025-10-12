@@ -1,4 +1,4 @@
-import { ethers, Wallet, JsonRpcProvider, EventLog, Log } from 'ethers';
+import { ethers, Wallet, JsonRpcProvider, WebSocketProvider, EventLog, Log } from 'ethers';
 import { FOUR_TRADING_ABI } from './abi';
 import {
   TokenInfo,
@@ -10,6 +10,7 @@ import {
   TokenSaleEvent,
   LiquidityAddedEvent,
 } from './types';
+import { PriceCalculator, PriceInfo } from './priceCalculator';
 
 /**
  * FOUR Launch Platform Trading SDK for BSC
@@ -60,10 +61,11 @@ export type TokenSaleListener = (event: TokenSaleEvent) => void;
 export type LiquidityAddedListener = (event: LiquidityAddedEvent) => void;
 
 export class FourTrading {
-  private provider: JsonRpcProvider;
+  private provider: JsonRpcProvider | WebSocketProvider;
   private wallet: Wallet;
   private contract: ethers.Contract;
   private contractAddress: string;
+  private priceCalculator: PriceCalculator;
 
   // Event listeners storage
   private tokenCreateListeners: Map<string, TokenCreateListener> = new Map();
@@ -73,13 +75,28 @@ export class FourTrading {
 
   constructor(config: FourTradingConfig) {
     this.contractAddress = config.contractAddress || '0x5c952063c7fc8610FFDB798152D69F0B9550762b';
-    this.provider = new JsonRpcProvider(config.rpcUrl);
+
+    // Support both HTTP and WebSocket providers
+    if (config.rpcUrl.startsWith('ws')) {
+      this.provider = new WebSocketProvider(config.rpcUrl);
+    } else {
+      this.provider = new JsonRpcProvider(config.rpcUrl);
+    }
+
     this.wallet = new Wallet(config.privateKey, this.provider);
     this.contract = new ethers.Contract(
       this.contractAddress,
       FOUR_TRADING_ABI,
       this.wallet
     );
+
+    // Initialize price calculator with read-only contract
+    const readOnlyContract = new ethers.Contract(
+      this.contractAddress,
+      FOUR_TRADING_ABI,
+      this.provider
+    );
+    this.priceCalculator = new PriceCalculator(readOnlyContract);
   }
 
   // ==================== Private Helpers ====================
@@ -118,6 +135,7 @@ export class FourTrading {
 
   /**
    * Buy tokens using BNB (AMAP - As Much As Possible)
+   * This is the recommended method for buying tokens
    */
   async buyToken(params: BuyParams): Promise<TransactionResult> {
     try {
@@ -131,26 +149,16 @@ export class FourTrading {
       console.log(`Min tokens: ${params.minAmount || 0}`);
 
       const txOptions = this.buildTxOptions(params.gas, fundsWei);
+      const recipient = params.to || this.wallet.address;
 
-      let tx;
-      if (params.to) {
-        // Buy to specific address
-        tx = await this.contract.buyTokenAMAP(
-          params.tokenAddress,
-          params.to,
-          fundsWei,
-          minAmount,
-          txOptions
-        );
-      } else {
-        // Buy to self
-        tx = await this.contract.buyTokenAMAP(
-          params.tokenAddress,
-          fundsWei,
-          minAmount,
-          txOptions
-        );
-      }
+      // Correct method signature: buyTokenAMAP(token, to, funds, minAmount)
+      const tx = await this.contract.buyTokenAMAP(
+        params.tokenAddress,
+        recipient,
+        fundsWei,
+        minAmount,
+        txOptions
+      );
 
       console.log(`Transaction sent: ${tx.hash}`);
       const receipt = await tx.wait();
@@ -185,13 +193,16 @@ export class FourTrading {
       console.log(`Max funds: ${maxFunds} BNB`);
 
       const txOptions = this.buildTxOptions(gas, maxFundsWei);
+      const recipient = to || this.wallet.address;
 
-      let tx;
-      if (to) {
-        tx = await this.contract.buyToken(tokenAddress, to, tokenAmount, maxFundsWei, txOptions);
-      } else {
-        tx = await this.contract.buyToken(tokenAddress, tokenAmount, maxFundsWei, txOptions);
-      }
+      // Correct method signature: buyToken(token, to, amount, maxFunds)
+      const tx = await this.contract.buyToken(
+        tokenAddress,
+        recipient,
+        tokenAmount,
+        maxFundsWei,
+        txOptions
+      );
 
       console.log(`Transaction sent: ${tx.hash}`);
       const receipt = await tx.wait();
@@ -210,6 +221,7 @@ export class FourTrading {
 
   /**
    * Sell tokens for BNB
+   * IMPORTANT: Must approve token spending before calling this method
    */
   async sellToken(params: SellParams): Promise<TransactionResult> {
     try {
@@ -217,7 +229,6 @@ export class FourTrading {
       const minFunds = params.minFunds
         ? ethers.parseEther(params.minFunds.toString())
         : 0n;
-      const origin = params.origin || 0;
 
       console.log(`Selling token ${params.tokenAddress}`);
       console.log(`Amount: ${params.amount}`);
@@ -225,32 +236,14 @@ export class FourTrading {
 
       const txOptions = this.buildTxOptions(params.gas);
 
-      let tx;
-      if (params.feeRate && params.feeRecipient) {
-        // Custom fee configuration
-        const feeRate = BigInt(params.feeRate);
-        tx = await this.contract.sellToken(
-          origin,
-          params.tokenAddress,
-          amount,
-          minFunds,
-          feeRate,
-          params.feeRecipient,
-          txOptions
-        );
-      } else if (minFunds > 0n) {
-        // With minimum funds protection
-        tx = await this.contract.sellToken(
-          origin,
-          params.tokenAddress,
-          amount,
-          minFunds,
-          txOptions
-        );
-      } else {
-        // Simple sell
-        tx = await this.contract.sellToken(params.tokenAddress, amount, txOptions);
-      }
+      // Correct method signature: sellToken(token, amount, minFunds)
+      // The contract handles the simpler version without origin/fee parameters
+      const tx = await this.contract.sellToken(
+        params.tokenAddress,
+        amount,
+        minFunds,
+        txOptions
+      );
 
       console.log(`Transaction sent: ${tx.hash}`);
       const receipt = await tx.wait();
@@ -367,21 +360,68 @@ export class FourTrading {
    * Get token information
    */
   async getTokenInfo(tokenAddress: string): Promise<TokenInfo> {
-    const info = await this.contract._tokenInfos(tokenAddress);
+    return await this.priceCalculator.getTokenInfo(tokenAddress);
+  }
+
+  /**
+   * Quote buy - calculate how many tokens you get for given BNB amount
+   */
+  async quoteBuy(tokenAddress: string, bnbAmount: number | string): Promise<PriceInfo> {
+    const bnbWei = ethers.parseEther(bnbAmount.toString());
+    return await this.priceCalculator.quoteBuy(tokenAddress, bnbWei);
+  }
+
+  /**
+   * Quote sell - calculate how much BNB you get for given token amount
+   */
+  async quoteSell(tokenAddress: string, tokenAmount: number | string): Promise<PriceInfo> {
+    const tokenWei = ethers.parseUnits(tokenAmount.toString(), 18);
+    return await this.priceCalculator.quoteSell(tokenAddress, tokenWei);
+  }
+
+  /**
+   * Get current price of token
+   */
+  async getCurrentPrice(tokenAddress: string): Promise<string> {
+    const price = await this.priceCalculator.getCurrentPrice(tokenAddress);
+    return ethers.formatEther(price);
+  }
+
+  /**
+   * Calculate buy amount with slippage protection
+   */
+  async calculateBuyWithSlippage(
+    tokenAddress: string,
+    bnbAmount: number | string,
+    slippagePercent: number = 1
+  ): Promise<{ minTokenAmount: string; estimatedTokenAmount: string; pricePerToken: string }> {
+    const bnbWei = ethers.parseEther(bnbAmount.toString());
+    const priceInfo = await this.priceCalculator.quoteBuy(tokenAddress, bnbWei);
+    const minAmount = await this.priceCalculator.estimateBuySlippage(tokenAddress, bnbWei, slippagePercent);
+
     return {
-      base: info.base,
-      quote: info.quote,
-      template: info.template,
-      totalSupply: info.totalSupply,
-      maxOffers: info.maxOffers,
-      maxRaising: info.maxRaising,
-      launchTime: info.launchTime,
-      offers: info.offers,
-      funds: info.funds,
-      lastPrice: info.lastPrice,
-      K: info.K,
-      T: info.T,
-      status: info.status,
+      minTokenAmount: ethers.formatUnits(minAmount, 18),
+      estimatedTokenAmount: ethers.formatUnits(priceInfo.tokenAmount, 18),
+      pricePerToken: ethers.formatEther(priceInfo.pricePerToken),
+    };
+  }
+
+  /**
+   * Calculate sell with slippage protection
+   */
+  async calculateSellWithSlippage(
+    tokenAddress: string,
+    tokenAmount: number | string,
+    slippagePercent: number = 1
+  ): Promise<{ minBnbAmount: string; estimatedBnbAmount: string; pricePerToken: string }> {
+    const tokenWei = ethers.parseUnits(tokenAmount.toString(), 18);
+    const priceInfo = await this.priceCalculator.quoteSell(tokenAddress, tokenWei);
+    const minFunds = await this.priceCalculator.estimateSellSlippage(tokenAddress, tokenWei, slippagePercent);
+
+    return {
+      minBnbAmount: ethers.formatEther(minFunds),
+      estimatedBnbAmount: ethers.formatEther(priceInfo.bnbCost),
+      pricePerToken: ethers.formatEther(priceInfo.pricePerToken),
     };
   }
 
