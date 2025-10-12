@@ -128,17 +128,22 @@ export function formatTokenAmount(amount: bigint, decimals: number = 18): string
 }
 
 /**
- * Parse BNB amount from string
+ * Parse BNB amount from string to bigint
+ * @param amount - Amount in BNB as string
+ * @returns Amount in wei as bigint
  */
-export function parseBNB(amount: string | number): bigint {
-  return ethers.parseEther(amount.toString());
+export function parseBNB(amount: string): bigint {
+  return ethers.parseEther(amount);
 }
 
 /**
- * Parse token amount from string
+ * Parse token amount from string to bigint
+ * @param amount - Amount as string
+ * @param decimals - Token decimals (default 18)
+ * @returns Amount in smallest unit as bigint
  */
-export function parseTokenAmount(amount: string | number, decimals: number = 18): bigint {
-  return ethers.parseUnits(amount.toString(), decimals);
+export function parseTokenAmount(amount: string, decimals: number = 18): bigint {
+  return ethers.parseUnits(amount, decimals);
 }
 
 /**

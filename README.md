@@ -78,21 +78,29 @@ pnpm add @fnzero/four-trading-sdk
 
 ```typescript
 import { FourTrading } from '@fnzero/four-trading-sdk';
+import { ethers } from 'ethers';
 
 const trading = new FourTrading({
   rpcUrl: 'https://bsc-dataseed.binance.org',
+  wssUrl: 'wss://bsc-rpc.publicnode.com',  // Required for events
   privateKey: 'your-private-key'
 });
 
+// Define amounts (SDK requires bigint)
+const bnbAmount = ethers.parseEther('0.1');
+
 // Get price quote
-const quote = await trading.quoteBuy('0xTokenAddress', 0.1);
+const quote = await trading.quoteBuy('0xTokenAddress', bnbAmount);
 console.log(`Estimated tokens: ${quote.tokenAmount}`);
 
-// Buy tokens with slippage protection
+// Calculate minimum with slippage protection
+const minAmount = (quote.tokenAmount * 99n) / 100n; // 1% slippage
+
+// Buy tokens
 const result = await trading.buyToken({
   tokenAddress: '0xTokenAddress',
-  fundsInBNB: 0.1,
-  minAmount: quote.tokenAmount * 99n / 100n // 1% slippage
+  fundsInBNB: bnbAmount,
+  minAmount: minAmount
 });
 
 console.log(`Transaction successful: ${result.txHash}`);
@@ -105,64 +113,81 @@ console.log(`Transaction successful: ${result.txHash}`);
 ```typescript
 import { FourTrading } from '@fnzero/four-trading-sdk';
 
-// HTTP Provider
+// ⚠️ IMPORTANT: wssUrl is REQUIRED for event subscriptions
 const trading = new FourTrading({
-  rpcUrl: 'https://bsc-dataseed.binance.org',
+  rpcUrl: 'https://bsc-dataseed.binance.org',     // HTTP RPC for transactions
+  wssUrl: 'wss://bsc-rpc.publicnode.com',         // WebSocket for events (required)
   privateKey: 'your-private-key'
 });
 
-// WebSocket Provider (for real-time events)
-const trading = new FourTrading({
-  rpcUrl: 'wss://bsc-rpc.publicnode.com',
-  privateKey: 'your-private-key'
-});
+// Why separate URLs?
+// - rpcUrl (HTTP): Used for contract transactions (buy/sell/queries)
+// - wssUrl (WebSocket): Used for real-time event subscriptions
+// - Event subscriptions CANNOT use HTTP polling, WebSocket is mandatory
 ```
 
 #### Buy Tokens
 
 ```typescript
+import { ethers } from 'ethers';
+
 // Method 1: Buy with BNB amount (recommended)
+const bnbAmount = ethers.parseEther('0.1');
+const minTokenAmount = ethers.parseUnits('1000', 18);
+
 await trading.buyToken({
   tokenAddress: '0xTokenAddress',
-  fundsInBNB: 0.1,        // Amount of BNB to spend
-  minAmount: '1000',       // Minimum tokens to receive (slippage protection)
-  to: '0xRecipient'        // Optional: recipient address
+  fundsInBNB: bnbAmount,      // Amount of BNB to spend (bigint)
+  minAmount: minTokenAmount,   // Minimum tokens to receive (bigint)
+  to: '0xRecipient'            // Optional: recipient address
 });
 
 // Method 2: Buy exact token amount
+const exactTokens = ethers.parseUnits('1000', 18);
+const maxBNB = ethers.parseEther('0.2');
+
 await trading.buyTokenExact(
   '0xTokenAddress',
-  '1000',                  // Exact token amount
-  0.2,                     // Maximum BNB to spend
-  '0xRecipient'            // Optional: recipient address
+  exactTokens,      // Exact token amount (bigint)
+  maxBNB,           // Maximum BNB to spend (bigint)
+  '0xRecipient'     // Optional: recipient address
 );
 ```
 
 #### Sell Tokens
 
 ```typescript
+import { ethers } from 'ethers';
+
 // First, approve token spending
-await trading.approveToken('0xTokenAddress');
+const tokenAmount = ethers.parseUnits('1000', 18);
+await trading.approveToken('0xTokenAddress', tokenAmount);
 
 // Then sell tokens
+const minBNB = ethers.parseEther('0.1');
+
 await trading.sellToken({
   tokenAddress: '0xTokenAddress',
-  amount: '1000',          // Amount of tokens to sell
-  minFunds: '0.1'          // Minimum BNB to receive (slippage protection)
+  amount: tokenAmount,  // Amount of tokens to sell (bigint)
+  minFunds: minBNB      // Minimum BNB to receive (bigint)
 });
 ```
 
 #### Price Queries
 
 ```typescript
+import { ethers } from 'ethers';
+
 // Get buy quote
-const buyQuote = await trading.quoteBuy('0xTokenAddress', 0.1);
+const bnbAmount = ethers.parseEther('0.1');
+const buyQuote = await trading.quoteBuy('0xTokenAddress', bnbAmount);
 console.log(`Tokens: ${buyQuote.tokenAmount}`);
 console.log(`Fee: ${buyQuote.fee}`);
 console.log(`Price per token: ${buyQuote.pricePerToken}`);
 
 // Get sell quote
-const sellQuote = await trading.quoteSell('0xTokenAddress', '1000');
+const tokenAmount = ethers.parseUnits('1000', 18);
+const sellQuote = await trading.quoteSell('0xTokenAddress', tokenAmount);
 console.log(`BNB received: ${sellQuote.bnbCost}`);
 console.log(`Fee: ${sellQuote.fee}`);
 
@@ -173,8 +198,8 @@ console.log(`Current price: ${currentPrice} BNB`);
 // Calculate with slippage protection
 const buyWithSlippage = await trading.calculateBuyWithSlippage(
   '0xTokenAddress',
-  0.1,                     // BNB amount
-  1                        // 1% slippage
+  bnbAmount,    // BNB amount (bigint)
+  1             // 1% slippage (number)
 );
 ```
 
@@ -282,10 +307,14 @@ const gasCost = calculateGasCost(receipt); // "0.001" (BNB)
 ### ⚠️ Error Handling
 
 ```typescript
+import { ethers } from 'ethers';
+
 try {
+  const bnbAmount = ethers.parseEther('0.1');
+
   const result = await trading.buyToken({
     tokenAddress: '0xTokenAddress',
-    fundsInBNB: 0.1
+    fundsInBNB: bnbAmount
   });
   console.log('Success:', result.txHash);
 } catch (error) {
@@ -293,6 +322,33 @@ try {
   // Handle error: insufficient balance, slippage exceeded, etc.
 }
 ```
+
+### 💡 Important: Amount Handling
+
+**All amount parameters MUST be `bigint` type:**
+
+```typescript
+import { ethers } from 'ethers';
+
+// ✅ Correct - Use ethers to convert amounts
+const bnbAmount = ethers.parseEther('0.1');           // BNB amount
+const tokenAmount = ethers.parseUnits('1000', 18);    // Token amount
+const gasPrice = ethers.parseUnits('5', 'gwei');      // Gas price
+
+// ✅ Correct - Use bigint literal for simple values
+const gasLimit = 500000n;
+const minAmount = 0n;
+
+// ❌ Wrong - Numbers and strings are not accepted
+fundsInBNB: 0.1        // ❌ TypeError
+fundsInBNB: '0.1'      // ❌ TypeError
+```
+
+**Why bigint?**
+- Prevents precision loss in large numbers
+- Native blockchain amount representation (wei)
+- Type-safe calculations enforced by TypeScript
+- No confusion about decimal places
 
 ### 📘 TypeScript Support
 
@@ -423,21 +479,29 @@ pnpm add @fnzero/four-trading-sdk
 
 ```typescript
 import { FourTrading } from '@fnzero/four-trading-sdk';
+import { ethers } from 'ethers';
 
 const trading = new FourTrading({
   rpcUrl: 'https://bsc-dataseed.binance.org',
+  wssUrl: 'wss://bsc-rpc.publicnode.com',  // 事件订阅必需
   privateKey: '你的私钥'
 });
 
+// 定义金额（SDK 要求 bigint 类型）
+const bnbAmount = ethers.parseEther('0.1');
+
 // 获取价格报价
-const quote = await trading.quoteBuy('0xTokenAddress', 0.1);
+const quote = await trading.quoteBuy('0xTokenAddress', bnbAmount);
 console.log(`预计获得代币数量: ${quote.tokenAmount}`);
 
-// 使用滑点保护买入代币
+// 计算滑点保护的最小值
+const minAmount = (quote.tokenAmount * 99n) / 100n; // 1% 滑点
+
+// 买入代币
 const result = await trading.buyToken({
   tokenAddress: '0xTokenAddress',
-  fundsInBNB: 0.1,
-  minAmount: quote.tokenAmount * 99n / 100n // 1% 滑点
+  fundsInBNB: bnbAmount,
+  minAmount: minAmount
 });
 
 console.log(`交易成功: ${result.txHash}`);
@@ -450,64 +514,81 @@ console.log(`交易成功: ${result.txHash}`);
 ```typescript
 import { FourTrading } from '@fnzero/four-trading-sdk';
 
-// HTTP 提供者
+// ⚠️ 重要：wssUrl 是事件订阅的必需参数
 const trading = new FourTrading({
-  rpcUrl: 'https://bsc-dataseed.binance.org',
+  rpcUrl: 'https://bsc-dataseed.binance.org',     // HTTP RPC用于交易
+  wssUrl: 'wss://bsc-rpc.publicnode.com',         // WebSocket用于事件（必需）
   privateKey: '你的私钥'
 });
 
-// WebSocket 提供者（用于实时事件）
-const trading = new FourTrading({
-  rpcUrl: 'wss://bsc-rpc.publicnode.com',
-  privateKey: '你的私钥'
-});
+// 为什么要分离URL？
+// - rpcUrl (HTTP): 用于合约交易（买入/卖出/查询）
+// - wssUrl (WebSocket): 用于实时事件订阅
+// - 事件订阅不能使用HTTP轮询，WebSocket是强制要求的
 ```
 
 #### 买入代币
 
 ```typescript
+import { ethers } from 'ethers';
+
 // 方法 1：使用 BNB 金额买入（推荐）
+const bnbAmount = ethers.parseEther('0.1');
+const minTokenAmount = ethers.parseUnits('1000', 18);
+
 await trading.buyToken({
   tokenAddress: '0xTokenAddress',
-  fundsInBNB: 0.1,        // 要花费的 BNB 数量
-  minAmount: '1000',       // 最少接收的代币数量（滑点保护）
-  to: '0xRecipient'        // 可选：接收地址
+  fundsInBNB: bnbAmount,        // 要花费的 BNB 数量（bigint）
+  minAmount: minTokenAmount,     // 最少接收的代币数量（bigint）
+  to: '0xRecipient'              // 可选：接收地址
 });
 
 // 方法 2：买入精确数量的代币
+const exactTokens = ethers.parseUnits('1000', 18);
+const maxBNB = ethers.parseEther('0.2');
+
 await trading.buyTokenExact(
   '0xTokenAddress',
-  '1000',                  // 精确的代币数量
-  0.2,                     // 最多花费的 BNB
-  '0xRecipient'            // 可选：接收地址
+  exactTokens,      // 精确的代币数量（bigint）
+  maxBNB,           // 最多花费的 BNB（bigint）
+  '0xRecipient'     // 可选：接收地址
 );
 ```
 
 #### 卖出代币
 
 ```typescript
+import { ethers } from 'ethers';
+
 // 首先，授权代币使用
-await trading.approveToken('0xTokenAddress');
+const tokenAmount = ethers.parseUnits('1000', 18);
+await trading.approveToken('0xTokenAddress', tokenAmount);
 
 // 然后卖出代币
+const minBNB = ethers.parseEther('0.1');
+
 await trading.sellToken({
   tokenAddress: '0xTokenAddress',
-  amount: '1000',          // 要卖出的代币数量
-  minFunds: '0.1'          // 最少接收的 BNB（滑点保护）
+  amount: tokenAmount,  // 要卖出的代币数量（bigint）
+  minFunds: minBNB      // 最少接收的 BNB（bigint）
 });
 ```
 
 #### 价格查询
 
 ```typescript
+import { ethers } from 'ethers';
+
 // 获取买入报价
-const buyQuote = await trading.quoteBuy('0xTokenAddress', 0.1);
+const bnbAmount = ethers.parseEther('0.1');
+const buyQuote = await trading.quoteBuy('0xTokenAddress', bnbAmount);
 console.log(`代币数量: ${buyQuote.tokenAmount}`);
 console.log(`手续费: ${buyQuote.fee}`);
 console.log(`每个代币价格: ${buyQuote.pricePerToken}`);
 
 // 获取卖出报价
-const sellQuote = await trading.quoteSell('0xTokenAddress', '1000');
+const tokenAmount = ethers.parseUnits('1000', 18);
+const sellQuote = await trading.quoteSell('0xTokenAddress', tokenAmount);
 console.log(`获得 BNB: ${sellQuote.bnbCost}`);
 console.log(`手续费: ${sellQuote.fee}`);
 
@@ -518,8 +599,8 @@ console.log(`当前价格: ${currentPrice} BNB`);
 // 使用滑点保护计算
 const buyWithSlippage = await trading.calculateBuyWithSlippage(
   '0xTokenAddress',
-  0.1,                     // BNB 数量
-  1                        // 1% 滑点
+  bnbAmount,    // BNB 数量（bigint）
+  1             // 1% 滑点（number）
 );
 ```
 
@@ -627,10 +708,14 @@ const gasCost = calculateGasCost(receipt); // "0.001" (BNB)
 ### ⚠️ 错误处理
 
 ```typescript
+import { ethers } from 'ethers';
+
 try {
+  const bnbAmount = ethers.parseEther('0.1');
+
   const result = await trading.buyToken({
     tokenAddress: '0xTokenAddress',
-    fundsInBNB: 0.1
+    fundsInBNB: bnbAmount
   });
   console.log('成功:', result.txHash);
 } catch (error) {
@@ -638,6 +723,33 @@ try {
   // 处理错误：余额不足、滑点超限等
 }
 ```
+
+### 💡 重要：金额处理
+
+**所有金额参数必须是 `bigint` 类型：**
+
+```typescript
+import { ethers } from 'ethers';
+
+// ✅ 正确 - 使用 ethers 转换金额
+const bnbAmount = ethers.parseEther('0.1');           // BNB 金额
+const tokenAmount = ethers.parseUnits('1000', 18);    // 代币金额
+const gasPrice = ethers.parseUnits('5', 'gwei');      // Gas 价格
+
+// ✅ 正确 - 对简单值使用 bigint 字面量
+const gasLimit = 500000n;
+const minAmount = 0n;
+
+// ❌ 错误 - 不接受数字和字符串
+fundsInBNB: 0.1        // ❌ TypeError
+fundsInBNB: '0.1'      // ❌ TypeError
+```
+
+**为什么使用 bigint？**
+- 防止大数字精度丢失
+- 原生区块链金额表示（wei）
+- TypeScript 强制类型安全计算
+- 不会混淆小数位数
 
 ### 📘 TypeScript 支持
 

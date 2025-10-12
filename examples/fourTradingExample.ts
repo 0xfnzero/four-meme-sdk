@@ -9,8 +9,11 @@ import { ethers } from 'ethers';
 async function main() {
   // Configuration
   const config: FourTradingConfig = {
-    rpcUrl: 'https://bsc-dataseed.bnbchain.org', // BSC mainnet
-    // rpcUrl: 'https://data-seed-prebsc-1-s1.binance.org:8545/', // BSC testnet
+    rpcUrl: 'https://bsc-dataseed.bnbchain.org', // HTTP RPC for transactions
+    wssUrl: 'wss://bsc-rpc.publicnode.com', // WebSocket for event subscriptions (required)
+    // Alternative endpoints:
+    // rpcUrl: 'https://data-seed-prebsc-1-s1.binance.org:8545/', // BSC testnet HTTP
+    // wssUrl: 'wss://bsc-testnet-rpc.publicnode.com', // BSC testnet WebSocket
     privateKey: process.env.PRIVATE_KEY || 'YOUR_PRIVATE_KEY',
     contractAddress: '0x5c952063c7fc8610FFDB798152D69F0B9550762b',
   };
@@ -129,16 +132,19 @@ async function main() {
     console.log(`  Reserves: ${ethers.formatUnits(tokenInfoEx.reserves, 18)}\n`);
 
     // Calculate pricing
-    const buyAmount = await trading.calcBuyAmount(tokenInfo, ethers.parseEther('0.1'));
+    const bnbForCalc = ethers.parseEther('0.1');
+    const tokenForCalc = ethers.parseUnits('1000', 18);
+
+    const buyAmount = await trading.calcBuyAmount(tokenInfo, bnbForCalc);
     console.log(`For 0.1 BNB, you would get: ${ethers.formatUnits(buyAmount, 18)} tokens`);
 
-    const buyCost = await trading.calcBuyCost(tokenInfo, ethers.parseUnits('1000', 18));
+    const buyCost = await trading.calcBuyCost(tokenInfo, tokenForCalc);
     console.log(`To buy 1000 tokens, you need: ${ethers.formatEther(buyCost)} BNB`);
 
-    const sellCost = await trading.calcSellCost(tokenInfo, ethers.parseUnits('1000', 18));
+    const sellCost = await trading.calcSellCost(tokenInfo, tokenForCalc);
     console.log(`Selling 1000 tokens gives: ${ethers.formatEther(sellCost)} BNB`);
 
-    const tradingFee = await trading.calcTradingFee(tokenInfo, ethers.parseEther('0.1'));
+    const tradingFee = await trading.calcTradingFee(tokenInfo, bnbForCalc);
     console.log(`Trading fee for 0.1 BNB: ${ethers.formatEther(tradingFee)} BNB\n`);
   } catch (error) {
     console.error('Error querying token info:', error);
@@ -147,13 +153,17 @@ async function main() {
   // ==================== Buy Token Example ====================
   console.log('--- Buying Tokens ---');
 
+  // Convert amounts to bigint first
+  const bnbToSpend = ethers.parseEther('0.01');
+  const gasPrice = ethers.parseUnits('5', 'gwei');
+
   const buyParams: BuyParams = {
     tokenAddress: tokenAddress,
-    fundsInBNB: 0.01, // Spend 0.01 BNB
-    minAmount: 0, // Minimum tokens to receive (0 = no slippage protection)
+    fundsInBNB: bnbToSpend,
+    minAmount: 0n, // Minimum tokens to receive (0 = no slippage protection)
     gas: {
-      gasLimit: 500000,
-      gasPrice: 5, // 5 Gwei
+      gasLimit: 500000n,
+      gasPrice: gasPrice,
     },
   };
 
@@ -174,13 +184,16 @@ async function main() {
   if (parseFloat(tokenBalance) > 0) {
     // Step 2: Approve contract to spend tokens (only needed once)
     console.log('Approving contract to spend tokens...');
+
+    const approvalGasPrice = ethers.parseUnits('5', 'gwei');
+
     try {
       await trading.approveToken(
         tokenAddress,
         undefined, // Max approval
         {
-          gasLimit: 100000,
-          gasPrice: 5,
+          gasLimit: 100000n,
+          gasPrice: approvalGasPrice,
         }
       );
       console.log('✓ Approval successful\n');
@@ -189,13 +202,17 @@ async function main() {
     }
 
     // Step 3: Sell tokens
+    const sellTokenAmount = Math.min(parseFloat(tokenBalance), 100).toString();
+    const sellAmount = ethers.parseUnits(sellTokenAmount, 18);
+    const sellGasPrice = ethers.parseUnits('5', 'gwei');
+
     const sellParams: SellParams = {
       tokenAddress: tokenAddress,
-      amount: Math.min(parseFloat(tokenBalance), 100), // Sell up to 100 tokens
-      minFunds: 0, // Minimum BNB to receive (slippage protection)
+      amount: sellAmount,
+      minFunds: 0n, // Minimum BNB to receive (slippage protection)
       gas: {
-        gasLimit: 500000,
-        gasPrice: 5,
+        gasLimit: 500000n,
+        gasPrice: sellGasPrice,
       },
     };
 

@@ -18,32 +18,33 @@ import { PriceCalculator, PriceInfo } from './priceCalculator';
  */
 
 export interface FourTradingConfig {
-  rpcUrl: string;
+  rpcUrl: string; // HTTP RPC endpoint for transactions
+  wssUrl: string; // WebSocket endpoint for event subscriptions (required for real-time events)
   privateKey: string;
   contractAddress?: string;
 }
 
 export interface GasOptions {
-  gasLimit?: number | string;
-  gasPrice?: number | string;
-  maxFeePerGas?: number | string;
-  maxPriorityFeePerGas?: number | string;
+  gasLimit?: bigint;
+  gasPrice?: bigint;  // In wei, use ethers.parseUnits(amount, 'gwei') for gwei
+  maxFeePerGas?: bigint;  // In wei, use ethers.parseUnits(amount, 'gwei') for gwei
+  maxPriorityFeePerGas?: bigint;  // In wei, use ethers.parseUnits(amount, 'gwei') for gwei
 }
 
 export interface BuyParams {
   tokenAddress: string;
-  fundsInBNB: number | string;
-  minAmount?: number | string;
+  fundsInBNB: bigint;  // In wei, use ethers.parseEther(amount) to convert from BNB
+  minAmount?: bigint;  // In wei, use ethers.parseUnits(amount, 18) to convert
   to?: string; // Optional recipient address
   gas?: GasOptions;
 }
 
 export interface SellParams {
   tokenAddress: string;
-  amount: number | string;
-  minFunds?: number | string;
+  amount: bigint;  // In wei, use ethers.parseUnits(amount, 18) to convert
+  minFunds?: bigint;  // In wei, use ethers.parseEther(amount) to convert from BNB
   origin?: number; // Origin identifier (default: 0)
-  feeRate?: number | string; // Custom fee rate (optional)
+  feeRate?: bigint; // Custom fee rate (optional)
   feeRecipient?: string; // Custom fee recipient (optional)
   gas?: GasOptions;
 }
@@ -61,36 +62,47 @@ export type TokenSaleListener = (event: TokenSaleEvent) => void;
 export type LiquidityAddedListener = (event: LiquidityAddedEvent) => void;
 
 export class FourTrading {
-  private provider: JsonRpcProvider | WebSocketProvider;
+  private provider: JsonRpcProvider; // HTTP provider for transactions
+  private eventProvider: WebSocketProvider; // WebSocket provider for event subscriptions (required)
   private wallet: Wallet;
   private contract: ethers.Contract;
+  private eventContract: ethers.Contract; // Contract instance for event subscriptions
   private contractAddress: string;
   private priceCalculator: PriceCalculator;
 
-  // Event listeners storage
-  private tokenCreateListeners: Map<string, TokenCreateListener> = new Map();
-  private tokenPurchaseListeners: Map<string, TokenPurchaseListener> = new Map();
-  private tokenSaleListeners: Map<string, TokenSaleListener> = new Map();
-  private liquidityAddedListeners: Map<string, LiquidityAddedListener> = new Map();
+  // Event listeners storage with cleanup tracking
+  private tokenCreateListeners: Map<string, { listener: TokenCreateListener; contractListener: any }> = new Map();
+  private tokenPurchaseListeners: Map<string, { listener: TokenPurchaseListener; contractListener: any }> = new Map();
+  private tokenSaleListeners: Map<string, { listener: TokenSaleListener; contractListener: any }> = new Map();
+  private liquidityAddedListeners: Map<string, { listener: LiquidityAddedListener; contractListener: any }> = new Map();
 
   constructor(config: FourTradingConfig) {
     this.contractAddress = config.contractAddress || '0x5c952063c7fc8610FFDB798152D69F0B9550762b';
 
-    // Support both HTTP and WebSocket providers
-    if (config.rpcUrl.startsWith('ws')) {
-      this.provider = new WebSocketProvider(config.rpcUrl);
-    } else {
-      this.provider = new JsonRpcProvider(config.rpcUrl);
-    }
+    // HTTP provider for transactions (required)
+    this.provider = new JsonRpcProvider(config.rpcUrl);
 
+    // WebSocket provider for events (required - cannot use polling)
+    this.eventProvider = new WebSocketProvider(config.wssUrl);
+
+    // Wallet connected to transaction provider
     this.wallet = new Wallet(config.privateKey, this.provider);
+
+    // Contract for transactions (uses wallet with HTTP provider)
     this.contract = new ethers.Contract(
       this.contractAddress,
       FOUR_TRADING_ABI,
       this.wallet
     );
 
-    // Initialize price calculator with read-only contract
+    // Contract for events (uses WebSocket provider for real-time subscriptions)
+    this.eventContract = new ethers.Contract(
+      this.contractAddress,
+      FOUR_TRADING_ABI,
+      this.eventProvider
+    );
+
+    // Initialize price calculator with read-only contract on transaction provider
     const readOnlyContract = new ethers.Contract(
       this.contractAddress,
       FOUR_TRADING_ABI,
@@ -110,21 +122,16 @@ export class FourTrading {
 
     if (gas) {
       if (gas.gasLimit) {
-        options.gasLimit = BigInt(gas.gasLimit);
+        options.gasLimit = gas.gasLimit;
       }
-
       if (gas.gasPrice) {
-        options.gasPrice = ethers.parseUnits(gas.gasPrice.toString(), 'gwei');
+        options.gasPrice = gas.gasPrice;
       }
-
       if (gas.maxFeePerGas) {
-        options.maxFeePerGas = ethers.parseUnits(gas.maxFeePerGas.toString(), 'gwei');
+        options.maxFeePerGas = gas.maxFeePerGas;
       }
       if (gas.maxPriorityFeePerGas) {
-        options.maxPriorityFeePerGas = ethers.parseUnits(
-          gas.maxPriorityFeePerGas.toString(),
-          'gwei'
-        );
+        options.maxPriorityFeePerGas = gas.maxPriorityFeePerGas;
       }
     }
 
@@ -139,14 +146,12 @@ export class FourTrading {
    */
   async buyToken(params: BuyParams): Promise<TransactionResult> {
     try {
-      const fundsWei = ethers.parseEther(params.fundsInBNB.toString());
-      const minAmount = params.minAmount
-        ? ethers.parseUnits(params.minAmount.toString(), 18)
-        : 0n;
+      const fundsWei = params.fundsInBNB;
+      const minAmount = params.minAmount || 0n;
 
       console.log(`Buying token ${params.tokenAddress}`);
-      console.log(`Spending: ${params.fundsInBNB} BNB`);
-      console.log(`Min tokens: ${params.minAmount || 0}`);
+      console.log(`Spending: ${ethers.formatEther(params.fundsInBNB)} BNB`);
+      console.log(`Min tokens: ${ethers.formatUnits(minAmount, 18)}`);
 
       const txOptions = this.buildTxOptions(params.gas, fundsWei);
       const recipient = params.to || this.wallet.address;
@@ -180,17 +185,17 @@ export class FourTrading {
    */
   async buyTokenExact(
     tokenAddress: string,
-    amount: number | string,
-    maxFunds: number | string,
+    amount: bigint,
+    maxFunds: bigint,
     to?: string,
     gas?: GasOptions
   ): Promise<TransactionResult> {
     try {
-      const tokenAmount = ethers.parseUnits(amount.toString(), 18);
-      const maxFundsWei = ethers.parseEther(maxFunds.toString());
+      const tokenAmount = amount;
+      const maxFundsWei = maxFunds;
 
-      console.log(`Buying exact ${amount} tokens`);
-      console.log(`Max funds: ${maxFunds} BNB`);
+      console.log(`Buying exact ${ethers.formatUnits(amount, 18)} tokens`);
+      console.log(`Max funds: ${ethers.formatEther(maxFunds)} BNB`);
 
       const txOptions = this.buildTxOptions(gas, maxFundsWei);
       const recipient = to || this.wallet.address;
@@ -225,14 +230,12 @@ export class FourTrading {
    */
   async sellToken(params: SellParams): Promise<TransactionResult> {
     try {
-      const amount = ethers.parseUnits(params.amount.toString(), 18);
-      const minFunds = params.minFunds
-        ? ethers.parseEther(params.minFunds.toString())
-        : 0n;
+      const amount = params.amount;
+      const minFunds = params.minFunds || 0n;
 
       console.log(`Selling token ${params.tokenAddress}`);
-      console.log(`Amount: ${params.amount}`);
-      console.log(`Min funds: ${params.minFunds || 0} BNB`);
+      console.log(`Amount: ${ethers.formatUnits(params.amount, 18)}`);
+      console.log(`Min funds: ${ethers.formatEther(minFunds)} BNB`);
 
       const txOptions = this.buildTxOptions(params.gas);
 
@@ -323,16 +326,14 @@ export class FourTrading {
    */
   async approveToken(
     tokenAddress: string,
-    amount?: number | string,
+    amount?: bigint,
     gas?: GasOptions
   ): Promise<TransactionResult> {
     try {
       const tokenABI = ['function approve(address spender, uint256 amount) returns (bool)'];
       const tokenContract = new ethers.Contract(tokenAddress, tokenABI, this.wallet);
 
-      const approveAmount = amount
-        ? ethers.parseUnits(amount.toString(), 18)
-        : ethers.MaxUint256;
+      const approveAmount = amount || ethers.MaxUint256;
 
       console.log(`Approving ${this.contractAddress} to spend tokens`);
 
@@ -365,18 +366,18 @@ export class FourTrading {
 
   /**
    * Quote buy - calculate how many tokens you get for given BNB amount
+   * @param bnbAmount - Amount in wei, use ethers.parseEther(amount) to convert from BNB
    */
-  async quoteBuy(tokenAddress: string, bnbAmount: number | string): Promise<PriceInfo> {
-    const bnbWei = ethers.parseEther(bnbAmount.toString());
-    return await this.priceCalculator.quoteBuy(tokenAddress, bnbWei);
+  async quoteBuy(tokenAddress: string, bnbAmount: bigint): Promise<PriceInfo> {
+    return await this.priceCalculator.quoteBuy(tokenAddress, bnbAmount);
   }
 
   /**
    * Quote sell - calculate how much BNB you get for given token amount
+   * @param tokenAmount - Amount in wei, use ethers.parseUnits(amount, 18) to convert
    */
-  async quoteSell(tokenAddress: string, tokenAmount: number | string): Promise<PriceInfo> {
-    const tokenWei = ethers.parseUnits(tokenAmount.toString(), 18);
-    return await this.priceCalculator.quoteSell(tokenAddress, tokenWei);
+  async quoteSell(tokenAddress: string, tokenAmount: bigint): Promise<PriceInfo> {
+    return await this.priceCalculator.quoteSell(tokenAddress, tokenAmount);
   }
 
   /**
@@ -389,15 +390,15 @@ export class FourTrading {
 
   /**
    * Calculate buy amount with slippage protection
+   * @param bnbAmount - Amount in wei, use ethers.parseEther(amount) to convert from BNB
    */
   async calculateBuyWithSlippage(
     tokenAddress: string,
-    bnbAmount: number | string,
+    bnbAmount: bigint,
     slippagePercent: number = 1
   ): Promise<{ minTokenAmount: string; estimatedTokenAmount: string; pricePerToken: string }> {
-    const bnbWei = ethers.parseEther(bnbAmount.toString());
-    const priceInfo = await this.priceCalculator.quoteBuy(tokenAddress, bnbWei);
-    const minAmount = await this.priceCalculator.estimateBuySlippage(tokenAddress, bnbWei, slippagePercent);
+    const priceInfo = await this.priceCalculator.quoteBuy(tokenAddress, bnbAmount);
+    const minAmount = await this.priceCalculator.estimateBuySlippage(tokenAddress, bnbAmount, slippagePercent);
 
     return {
       minTokenAmount: ethers.formatUnits(minAmount, 18),
@@ -408,15 +409,15 @@ export class FourTrading {
 
   /**
    * Calculate sell with slippage protection
+   * @param tokenAmount - Amount in wei, use ethers.parseUnits(amount, 18) to convert
    */
   async calculateSellWithSlippage(
     tokenAddress: string,
-    tokenAmount: number | string,
+    tokenAmount: bigint,
     slippagePercent: number = 1
   ): Promise<{ minBnbAmount: string; estimatedBnbAmount: string; pricePerToken: string }> {
-    const tokenWei = ethers.parseUnits(tokenAmount.toString(), 18);
-    const priceInfo = await this.priceCalculator.quoteSell(tokenAddress, tokenWei);
-    const minFunds = await this.priceCalculator.estimateSellSlippage(tokenAddress, tokenWei, slippagePercent);
+    const priceInfo = await this.priceCalculator.quoteSell(tokenAddress, tokenAmount);
+    const minFunds = await this.priceCalculator.estimateSellSlippage(tokenAddress, tokenAmount, slippagePercent);
 
     return {
       minBnbAmount: ethers.formatEther(minFunds),
@@ -607,9 +608,8 @@ export class FourTrading {
    */
   onTokenCreate(listener: TokenCreateListener): string {
     const id = `tokenCreate_${Date.now()}_${Math.random()}`;
-    this.tokenCreateListeners.set(id, listener);
 
-    this.contract.on('TokenCreate', (creator, token, requestId, name, symbol, totalSupply, launchTime, launchFee) => {
+    const contractListener = (creator: string, token: string, requestId: bigint, name: string, symbol: string, totalSupply: bigint, launchTime: bigint, launchFee: bigint) => {
       const event: TokenCreateEvent = {
         creator,
         token,
@@ -621,7 +621,10 @@ export class FourTrading {
         launchFee,
       };
       listener(event);
-    });
+    };
+
+    this.tokenCreateListeners.set(id, { listener, contractListener });
+    this.eventContract.on('TokenCreate', contractListener);
 
     return id;
   }
@@ -631,9 +634,8 @@ export class FourTrading {
    */
   onTokenPurchase(listener: TokenPurchaseListener, tokenAddress?: string): string {
     const id = `tokenPurchase_${Date.now()}_${Math.random()}`;
-    this.tokenPurchaseListeners.set(id, listener);
 
-    this.contract.on('TokenPurchase', (token, account, price, amount, cost, fee, offers, funds) => {
+    const contractListener = (token: string, account: string, price: bigint, amount: bigint, cost: bigint, fee: bigint, offers: bigint, funds: bigint) => {
       if (tokenAddress && token.toLowerCase() !== tokenAddress.toLowerCase()) {
         return; // Filter by token address if provided
       }
@@ -649,7 +651,10 @@ export class FourTrading {
         funds,
       };
       listener(event);
-    });
+    };
+
+    this.tokenPurchaseListeners.set(id, { listener, contractListener });
+    this.eventContract.on('TokenPurchase', contractListener);
 
     return id;
   }
@@ -659,9 +664,8 @@ export class FourTrading {
    */
   onTokenSale(listener: TokenSaleListener, tokenAddress?: string): string {
     const id = `tokenSale_${Date.now()}_${Math.random()}`;
-    this.tokenSaleListeners.set(id, listener);
 
-    this.contract.on('TokenSale', (token, account, price, amount, cost, fee, offers, funds) => {
+    const contractListener = (token: string, account: string, price: bigint, amount: bigint, cost: bigint, fee: bigint, offers: bigint, funds: bigint) => {
       if (tokenAddress && token.toLowerCase() !== tokenAddress.toLowerCase()) {
         return;
       }
@@ -677,7 +681,10 @@ export class FourTrading {
         funds,
       };
       listener(event);
-    });
+    };
+
+    this.tokenSaleListeners.set(id, { listener, contractListener });
+    this.eventContract.on('TokenSale', contractListener);
 
     return id;
   }
@@ -687,9 +694,8 @@ export class FourTrading {
    */
   onLiquidityAdded(listener: LiquidityAddedListener): string {
     const id = `liquidityAdded_${Date.now()}_${Math.random()}`;
-    this.liquidityAddedListeners.set(id, listener);
 
-    this.contract.on('LiquidityAdded', (base, offers, quote, funds) => {
+    const contractListener = (base: string, offers: bigint, quote: string, funds: bigint) => {
       const event: LiquidityAddedEvent = {
         base,
         offers,
@@ -697,7 +703,10 @@ export class FourTrading {
         funds,
       };
       listener(event);
-    });
+    };
+
+    this.liquidityAddedListeners.set(id, { listener, contractListener });
+    this.eventContract.on('LiquidityAdded', contractListener);
 
     return id;
   }
@@ -706,14 +715,36 @@ export class FourTrading {
    * Unsubscribe from an event
    */
   off(listenerId: string): void {
+    // Check TokenCreate listeners
     if (this.tokenCreateListeners.has(listenerId)) {
+      const { contractListener } = this.tokenCreateListeners.get(listenerId)!;
+      this.eventContract.off('TokenCreate', contractListener);
       this.tokenCreateListeners.delete(listenerId);
-    } else if (this.tokenPurchaseListeners.has(listenerId)) {
+      return;
+    }
+
+    // Check TokenPurchase listeners
+    if (this.tokenPurchaseListeners.has(listenerId)) {
+      const { contractListener } = this.tokenPurchaseListeners.get(listenerId)!;
+      this.eventContract.off('TokenPurchase', contractListener);
       this.tokenPurchaseListeners.delete(listenerId);
-    } else if (this.tokenSaleListeners.has(listenerId)) {
+      return;
+    }
+
+    // Check TokenSale listeners
+    if (this.tokenSaleListeners.has(listenerId)) {
+      const { contractListener } = this.tokenSaleListeners.get(listenerId)!;
+      this.eventContract.off('TokenSale', contractListener);
       this.tokenSaleListeners.delete(listenerId);
-    } else if (this.liquidityAddedListeners.has(listenerId)) {
+      return;
+    }
+
+    // Check LiquidityAdded listeners
+    if (this.liquidityAddedListeners.has(listenerId)) {
+      const { contractListener } = this.liquidityAddedListeners.get(listenerId)!;
+      this.eventContract.off('LiquidityAdded', contractListener);
       this.liquidityAddedListeners.delete(listenerId);
+      return;
     }
   }
 
@@ -721,7 +752,7 @@ export class FourTrading {
    * Remove all event listeners
    */
   removeAllListeners(): void {
-    this.contract.removeAllListeners();
+    this.eventContract.removeAllListeners();
     this.tokenCreateListeners.clear();
     this.tokenPurchaseListeners.clear();
     this.tokenSaleListeners.clear();
