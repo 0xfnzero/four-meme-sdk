@@ -1,5 +1,5 @@
 <div align="center">
-    <h1>🚀 FOUR.meme Trading SDK</h1>
+    <h1>🚀 FOUR Trading SDK</h1>
     <h3><em>A comprehensive TypeScript SDK for seamless FOUR.meme token trading on BSC</em></h3>
 </div>
 
@@ -8,11 +8,11 @@
 </p>
 
 <p align="center">
-    <a href="https://www.npmjs.com/package/four-trading-sdk">
-        <img src="https://img.shields.io/npm/v/four-trading-sdk.svg" alt="npm version">
+    <a href="https://www.npmjs.com/package/@fnzero/four-trading-sdk">
+        <img src="https://img.shields.io/npm/v/@fnzero/four-trading-sdk.svg" alt="npm version">
     </a>
-    <a href="https://www.npmjs.com/package/four-trading-sdk">
-        <img src="https://img.shields.io/npm/dm/four-trading-sdk.svg" alt="npm downloads">
+    <a href="https://www.npmjs.com/package/@fnzero/four-trading-sdk">
+        <img src="https://img.shields.io/npm/dm/@fnzero/four-trading-sdk.svg" alt="npm downloads">
     </a>
     <a href="https://github.com/0xfnzero/four-trading-sdk/blob/main/LICENSE">
         <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
@@ -35,7 +35,9 @@
 <p align="center">
     <a href="#中文">中文</a> |
     <a href="#english">English</a> |
-    <a href="https://four.meme">Website</a>
+    <a href="https://fnzero.dev/">Website</a> |
+    <a href="https://t.me/fnzero_group">Telegram</a> |
+    <a href="https://discord.gg/vuazbGkqQE">Discord</a>
 </p>
 
 ---
@@ -57,25 +59,25 @@
 ### 📦 Installation
 
 ```bash
-npm install four-trading-sdk
+npm install @fnzero/four-trading-sdk
 ```
 
 or
 
 ```bash
-yarn add four-trading-sdk
+yarn add @fnzero/four-trading-sdk
 ```
 
 or
 
 ```bash
-pnpm add four-trading-sdk
+pnpm add @fnzero/four-trading-sdk
 ```
 
 ### 🚀 Quick Start
 
 ```typescript
-import { FourTrading } from 'four-trading-sdk';
+import { FourTrading } from '@fnzero/four-trading-sdk';
 
 const trading = new FourTrading({
   rpcUrl: 'https://bsc-dataseed.binance.org',
@@ -101,7 +103,7 @@ console.log(`Transaction successful: ${result.txHash}`);
 #### Initialize SDK
 
 ```typescript
-import { FourTrading } from 'four-trading-sdk';
+import { FourTrading } from '@fnzero/four-trading-sdk';
 
 // HTTP Provider
 const trading = new FourTrading({
@@ -250,7 +252,7 @@ import {
   parseTradeEvents,
   getTransactionType,
   calculateGasCost
-} from 'four-trading-sdk';
+} from '@fnzero/four-trading-sdk';
 
 // Format amounts
 const bnbFormatted = formatBNB(1000000000000000000n); // "1.0"
@@ -308,7 +310,7 @@ import {
   TokenCreateEvent,
   TokenPurchaseEvent,
   TokenSaleEvent
-} from 'four-trading-sdk';
+} from '@fnzero/four-trading-sdk';
 ```
 
 ### 📋 Contract Information
@@ -341,6 +343,51 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ---
 
 <a name="中文"></a>
+
+<div align="center">
+    <h1>🚀 FOUR Trading SDK</h1>
+    <h3><em>在 BSC 上无缝交易 FOUR.meme 代币的综合 TypeScript SDK</em></h3>
+</div>
+
+<p align="center">
+    <strong>通过强大的工具和统一的接口，将 FOUR.meme 代币交易、价格计算和事件监控集成到您的应用程序中。</strong>
+</p>
+
+<p align="center">
+    <a href="https://www.npmjs.com/package/@fnzero/four-trading-sdk">
+        <img src="https://img.shields.io/npm/v/@fnzero/four-trading-sdk.svg" alt="npm version">
+    </a>
+    <a href="https://www.npmjs.com/package/@fnzero/four-trading-sdk">
+        <img src="https://img.shields.io/npm/dm/@fnzero/four-trading-sdk.svg" alt="npm downloads">
+    </a>
+    <a href="https://github.com/0xfnzero/four-trading-sdk/blob/main/LICENSE">
+        <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+    </a>
+    <a href="https://github.com/0xfnzero/four-trading-sdk">
+        <img src="https://img.shields.io/github/stars/0xfnzero/four-trading-sdk?style=social" alt="GitHub stars">
+    </a>
+    <a href="https://github.com/0xfnzero/four-trading-sdk/network">
+        <img src="https://img.shields.io/github/forks/0xfnzero/four-trading-sdk?style=social" alt="GitHub forks">
+    </a>
+</p>
+
+<p align="center">
+    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+    <img src="https://img.shields.io/badge/BSC-F0B90B?style=for-the-badge&logo=binance&logoColor=white" alt="Binance Smart Chain">
+    <img src="https://img.shields.io/badge/FOUR.meme-FF6B6B?style=for-the-badge&logo=ethereum&logoColor=white" alt="FOUR.meme">
+    <img src="https://img.shields.io/badge/DeFi-4B8BBE?style=for-the-badge&logo=bitcoin&logoColor=white" alt="DeFi Trading">
+</p>
+
+<p align="center">
+    <a href="#english">English</a> |
+    <a href="#中文">中文</a> |
+    <a href="https://fnzero.dev/">Website</a> |
+    <a href="https://t.me/fnzero_group">Telegram</a> |
+    <a href="https://discord.gg/vuazbGkqQE">Discord</a>
+</p>
+
+---
+
 ## 📖 中文文档
 
 ### ✨ 特性
@@ -357,25 +404,25 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ### 📦 安装
 
 ```bash
-npm install four-trading-sdk
+npm install @fnzero/four-trading-sdk
 ```
 
 或
 
 ```bash
-yarn add four-trading-sdk
+yarn add @fnzero/four-trading-sdk
 ```
 
 或
 
 ```bash
-pnpm add four-trading-sdk
+pnpm add @fnzero/four-trading-sdk
 ```
 
 ### 🚀 快速开始
 
 ```typescript
-import { FourTrading } from 'four-trading-sdk';
+import { FourTrading } from '@fnzero/four-trading-sdk';
 
 const trading = new FourTrading({
   rpcUrl: 'https://bsc-dataseed.binance.org',
@@ -401,7 +448,7 @@ console.log(`交易成功: ${result.txHash}`);
 #### 初始化 SDK
 
 ```typescript
-import { FourTrading } from 'four-trading-sdk';
+import { FourTrading } from '@fnzero/four-trading-sdk';
 
 // HTTP 提供者
 const trading = new FourTrading({
@@ -550,7 +597,7 @@ import {
   parseTradeEvents,
   getTransactionType,
   calculateGasCost
-} from 'four-trading-sdk';
+} from '@fnzero/four-trading-sdk';
 
 // 格式化数量
 const bnbFormatted = formatBNB(1000000000000000000n); // "1.0"
@@ -608,7 +655,7 @@ import {
   TokenCreateEvent,
   TokenPurchaseEvent,
   TokenSaleEvent
-} from 'four-trading-sdk';
+} from '@fnzero/four-trading-sdk';
 ```
 
 ### 📋 合约信息
@@ -643,8 +690,10 @@ MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
 <div align="center">
     <p>Made with ❤️ by the FOUR.meme community</p>
     <p>
-        <a href="https://four.meme">Website</a> •
+        <a href="https://fnzero.dev/">Website</a> •
+        <a href="https://t.me/fnzero_group">Telegram</a> •
+        <a href="https://discord.gg/vuazbGkqQE">Discord</a> •
         <a href="https://github.com/0xfnzero/four-trading-sdk">GitHub</a> •
-        <a href="https://www.npmjs.com/package/four-trading-sdk">NPM</a>
+        <a href="https://www.npmjs.com/package/@fnzero/four-trading-sdk">NPM</a>
     </p>
 </div>
