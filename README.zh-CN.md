@@ -1,10 +1,10 @@
 <div align="center">
     <h1>🚀 FOUR Trading SDK</h1>
-    <h3><em>A comprehensive TypeScript SDK for seamless FOUR.meme token trading on BSC</em></h3>
+    <h3><em>在 BSC 上无缝交易 FOUR.meme 代币的综合 TypeScript SDK</em></h3>
 </div>
 
 <p align="center">
-    <strong>Integrate FOUR.meme token trading, price calculation, and event monitoring into your applications with powerful tools and unified interfaces.</strong>
+    <strong>通过强大的工具和统一的接口，将 FOUR.meme 代币交易、价格计算和事件监控集成到您的应用程序中。</strong>
 </p>
 
 <p align="center">
@@ -42,44 +42,46 @@
 
 ---
 
-### ✨ Features
+## 📖 中文文档
 
-#### Core Trading
-- 🔄 **Complete Trading Functions**: Buy, sell, and create tokens with ease
-- 💰 **Price Calculation**: Real-time price quotes and slippage protection
-- 📊 **Event Monitoring**: Subscribe to token creation, purchase, and sale events
-- 🌐 **WebSocket Support**: Real-time updates via WebSocket connections
+### ✨ 特性
 
-#### Advanced Features
-- ⚡ **High Performance**: 60-99% latency reduction with intelligent caching
-- 🗄️ **Smart Caching**: LRU + TTL cache system (99.8% faster on cache hits)
-- 🔄 **Auto-Reconnection**: Exponential backoff WebSocket reconnection
-- 📊 **Performance Monitoring**: Track P50/P95/P99 latencies and metrics
-- 🛡️ **Type Safe**: Full TypeScript support with 100% type coverage
-- ✅ **Input Validation**: Comprehensive validation for all parameters
-- 📝 **Structured Logging**: Configurable log levels and formats
-- 🎯 **Production Ready**: 84% test coverage, battle-tested code
-- 🔧 **Developer Friendly**: Rich error types and detailed error messages
+#### 核心交易功能
+- 🔄 **完整交易功能**：轻松买入、卖出和创建代币
+- 💰 **价格计算**：实时价格查询和滑点保护
+- 📊 **事件监控**：订阅代币创建、购买和出售事件
+- 🌐 **WebSocket 支持**：通过 WebSocket 连接实时更新
 
-### 📦 Installation
+#### 高级特性
+- ⚡ **高性能**：智能缓存实现 60-99% 延迟降低
+- 🗄️ **智能缓存**：LRU + TTL 缓存系统（缓存命中快 99.8%）
+- 🔄 **自动重连**：指数退避 WebSocket 重连机制
+- 📊 **性能监控**：跟踪 P50/P95/P99 延迟和指标
+- 🛡️ **类型安全**：完整的 TypeScript 支持，100% 类型覆盖
+- ✅ **输入验证**：所有参数的全面验证
+- 📝 **结构化日志**：可配置的日志级别和格式
+- 🎯 **生产就绪**：84% 测试覆盖率，经过实战检验
+- 🔧 **开发者友好**：丰富的错误类型和详细的错误消息
+
+### 📦 安装
 
 ```bash
 npm install @fnzero/four-trading-sdk
 ```
 
-or
+或
 
 ```bash
 yarn add @fnzero/four-trading-sdk
 ```
 
-or
+或
 
 ```bash
 pnpm add @fnzero/four-trading-sdk
 ```
 
-### 🚀 Quick Start
+### 🚀 快速开始
 
 ```typescript
 import { FourTrading } from '@fnzero/four-trading-sdk';
@@ -87,188 +89,188 @@ import { ethers } from 'ethers';
 
 const trading = new FourTrading({
   rpcUrl: 'https://bsc-dataseed.binance.org',
-  wssUrl: 'wss://bsc-rpc.publicnode.com',  // Required for events
-  privateKey: 'your-private-key'
+  wssUrl: 'wss://bsc-rpc.publicnode.com',  // 事件订阅必需
+  privateKey: '你的私钥'
 });
 
-// Define amounts (SDK requires bigint)
+// 定义金额（SDK 要求 bigint 类型）
 const bnbAmount = ethers.parseEther('0.1');
 
-// Get price quote
+// 获取价格报价
 const quote = await trading.quoteBuy('0xTokenAddress', bnbAmount);
-console.log(`Estimated tokens: ${quote.tokenAmount}`);
+console.log(`预计获得代币数量: ${quote.tokenAmount}`);
 
-// Calculate minimum with slippage protection
-const minAmount = (quote.tokenAmount * 99n) / 100n; // 1% slippage
+// 计算滑点保护的最小值
+const minAmount = (quote.tokenAmount * 99n) / 100n; // 1% 滑点
 
-// Buy tokens
+// 买入代币
 const result = await trading.buyToken({
   tokenAddress: '0xTokenAddress',
   fundsInBNB: bnbAmount,
   minAmount: minAmount
 });
 
-console.log(`Transaction successful: ${result.txHash}`);
+console.log(`交易成功: ${result.txHash}`);
 ```
 
-### 💡 Core Functions
+### 💡 核心功能
 
-#### Initialize SDK
+#### 初始化 SDK
 
 ```typescript
 import { FourTrading } from '@fnzero/four-trading-sdk';
 
-// ⚠️ IMPORTANT: wssUrl is REQUIRED for event subscriptions
+// ⚠️ 重要：wssUrl 是事件订阅的必需参数
 const trading = new FourTrading({
-  rpcUrl: 'https://bsc-dataseed.binance.org',     // HTTP RPC for transactions
-  wssUrl: 'wss://bsc-rpc.publicnode.com',         // WebSocket for events (required)
-  privateKey: 'your-private-key'
+  rpcUrl: 'https://bsc-dataseed.binance.org',     // HTTP RPC用于交易
+  wssUrl: 'wss://bsc-rpc.publicnode.com',         // WebSocket用于事件（必需）
+  privateKey: '你的私钥'
 });
 
-// Why separate URLs?
-// - rpcUrl (HTTP): Used for contract transactions (buy/sell/queries)
-// - wssUrl (WebSocket): Used for real-time event subscriptions
-// - Event subscriptions CANNOT use HTTP polling, WebSocket is mandatory
+// 为什么要分离URL？
+// - rpcUrl (HTTP): 用于合约交易（买入/卖出/查询）
+// - wssUrl (WebSocket): 用于实时事件订阅
+// - 事件订阅不能使用HTTP轮询，WebSocket是强制要求的
 ```
 
-#### Buy Tokens
+#### 买入代币
 
 ```typescript
 import { ethers } from 'ethers';
 
-// Method 1: Buy with BNB amount (recommended)
+// 方法 1：使用 BNB 金额买入（推荐）
 const bnbAmount = ethers.parseEther('0.1');
 const minTokenAmount = ethers.parseUnits('1000', 18);
 
 await trading.buyToken({
   tokenAddress: '0xTokenAddress',
-  fundsInBNB: bnbAmount,      // Amount of BNB to spend (bigint)
-  minAmount: minTokenAmount,   // Minimum tokens to receive (bigint)
-  to: '0xRecipient'            // Optional: recipient address
+  fundsInBNB: bnbAmount,        // 要花费的 BNB 数量（bigint）
+  minAmount: minTokenAmount,     // 最少接收的代币数量（bigint）
+  to: '0xRecipient'              // 可选：接收地址
 });
 
-// Method 2: Buy exact token amount
+// 方法 2：买入精确数量的代币
 const exactTokens = ethers.parseUnits('1000', 18);
 const maxBNB = ethers.parseEther('0.2');
 
 await trading.buyTokenExact(
   '0xTokenAddress',
-  exactTokens,      // Exact token amount (bigint)
-  maxBNB,           // Maximum BNB to spend (bigint)
-  '0xRecipient'     // Optional: recipient address
+  exactTokens,      // 精确的代币数量（bigint）
+  maxBNB,           // 最多花费的 BNB（bigint）
+  '0xRecipient'     // 可选：接收地址
 );
 ```
 
-#### Sell Tokens
+#### 卖出代币
 
 ```typescript
 import { ethers } from 'ethers';
 
-// First, approve token spending
+// 首先，授权代币使用
 const tokenAmount = ethers.parseUnits('1000', 18);
 await trading.approveToken('0xTokenAddress', tokenAmount);
 
-// Then sell tokens
+// 然后卖出代币
 const minBNB = ethers.parseEther('0.1');
 
 await trading.sellToken({
   tokenAddress: '0xTokenAddress',
-  amount: tokenAmount,  // Amount of tokens to sell (bigint)
-  minFunds: minBNB      // Minimum BNB to receive (bigint)
+  amount: tokenAmount,  // 要卖出的代币数量（bigint）
+  minFunds: minBNB      // 最少接收的 BNB（bigint）
 });
 ```
 
-#### Price Queries
+#### 价格查询
 
 ```typescript
 import { ethers } from 'ethers';
 
-// Get buy quote
+// 获取买入报价
 const bnbAmount = ethers.parseEther('0.1');
 const buyQuote = await trading.quoteBuy('0xTokenAddress', bnbAmount);
-console.log(`Tokens: ${buyQuote.tokenAmount}`);
-console.log(`Fee: ${buyQuote.fee}`);
-console.log(`Price per token: ${buyQuote.pricePerToken}`);
+console.log(`代币数量: ${buyQuote.tokenAmount}`);
+console.log(`手续费: ${buyQuote.fee}`);
+console.log(`每个代币价格: ${buyQuote.pricePerToken}`);
 
-// Get sell quote
+// 获取卖出报价
 const tokenAmount = ethers.parseUnits('1000', 18);
 const sellQuote = await trading.quoteSell('0xTokenAddress', tokenAmount);
-console.log(`BNB received: ${sellQuote.bnbCost}`);
-console.log(`Fee: ${sellQuote.fee}`);
+console.log(`获得 BNB: ${sellQuote.bnbCost}`);
+console.log(`手续费: ${sellQuote.fee}`);
 
-// Get current price
+// 获取当前价格
 const currentPrice = await trading.getCurrentPrice('0xTokenAddress');
-console.log(`Current price: ${currentPrice} BNB`);
+console.log(`当前价格: ${currentPrice} BNB`);
 
-// Calculate with slippage protection
+// 使用滑点保护计算
 const buyWithSlippage = await trading.calculateBuyWithSlippage(
   '0xTokenAddress',
-  bnbAmount,    // BNB amount (bigint)
-  1             // 1% slippage (number)
+  bnbAmount,    // BNB 数量（bigint）
+  1             // 1% 滑点（number）
 );
 ```
 
-#### Token Information
+#### 代币信息
 
 ```typescript
-// Get token info
+// 获取代币信息
 const tokenInfo = await trading.getTokenInfo('0xTokenAddress');
 console.log(tokenInfo);
 
-// Get wallet balances
+// 获取钱包余额
 const bnbBalance = await trading.getBNBBalance();
 const tokenBalance = await trading.getTokenBalance('0xTokenAddress');
 ```
 
-#### Event Subscription
+#### 事件订阅
 
 ```typescript
-// Subscribe to token creation events
+// 订阅代币创建事件
 const createListener = trading.onTokenCreate((event) => {
-  console.log('New token created:', event.token);
-  console.log('Creator:', event.creator);
-  console.log('Name:', event.name);
-  console.log('Symbol:', event.symbol);
+  console.log('新代币创建:', event.token);
+  console.log('创建者:', event.creator);
+  console.log('名称:', event.name);
+  console.log('符号:', event.symbol);
 });
 
-// Subscribe to purchase events
+// 订阅购买事件
 const purchaseListener = trading.onTokenPurchase((event) => {
-  console.log('Token purchased:', event.token);
-  console.log('Amount:', event.amount);
-  console.log('Cost:', event.cost);
-}, '0xTokenAddress'); // Optional: filter by token address
+  console.log('代币购买:', event.token);
+  console.log('数量:', event.amount);
+  console.log('花费:', event.cost);
+}, '0xTokenAddress'); // 可选：按代币地址过滤
 
-// Subscribe to sale events
+// 订阅出售事件
 const saleListener = trading.onTokenSale((event) => {
-  console.log('Token sold:', event.token);
-  console.log('Amount:', event.amount);
-  console.log('Revenue:', event.cost);
+  console.log('代币出售:', event.token);
+  console.log('数量:', event.amount);
+  console.log('收入:', event.cost);
 });
 
-// Unsubscribe
+// 取消订阅
 trading.off(createListener);
 trading.off(purchaseListener);
 trading.off(saleListener);
 ```
 
-#### Query Historical Events
+#### 查询历史事件
 
 ```typescript
-// Get token creation events
+// 获取代币创建事件
 const createEvents = await trading.getTokenCreateEvents(0, 'latest');
 
-// Get purchase events for specific token
+// 获取特定代币的购买事件
 const purchaseEvents = await trading.getTokenPurchaseEvents(
   '0xTokenAddress',
   startBlock,
   endBlock
 );
 
-// Get sale events
+// 获取出售事件
 const saleEvents = await trading.getTokenSaleEvents('0xTokenAddress');
 ```
 
-### 🛠️ Utility Functions
+### 🛠️ 实用函数
 
 ```typescript
 import {
@@ -284,32 +286,32 @@ import {
   calculateGasCost
 } from '@fnzero/four-trading-sdk';
 
-// Format amounts
+// 格式化数量
 const bnbFormatted = formatBNB(1000000000000000000n); // "1.0"
 const tokenFormatted = formatTokenAmount(1000000000000000000n); // "1.0"
 
-// Parse amounts
+// 解析数量
 const bnbWei = parseBNB('1.0'); // 1000000000000000000n
 const tokenWei = parseTokenAmount('1.0'); // 1000000000000000000n
 
-// Calculate price change
+// 计算价格变化
 const change = calculatePriceChange(100n, 110n); // 10%
 
-// Validate address
+// 验证地址
 const isValid = isValidAddress('0x...');
 
-// Parse transaction events
+// 解析交易事件
 const receipt = await provider.getTransactionReceipt(txHash);
 const { purchases, sales } = await parseTradeEvents(receipt, contract);
 
-// Get transaction type
-const txType = getTransactionType(tx); // 'buyTokenAMAP' | 'sellToken' | etc.
+// 获取交易类型
+const txType = getTransactionType(tx); // 'buyTokenAMAP' | 'sellToken' 等
 
-// Calculate gas cost
+// 计算 gas 费用
 const gasCost = calculateGasCost(receipt); // "0.001" (BNB)
 ```
 
-### ⚠️ Error Handling
+### ⚠️ 错误处理
 
 ```typescript
 import { ethers } from 'ethers';
@@ -321,43 +323,43 @@ try {
     tokenAddress: '0xTokenAddress',
     fundsInBNB: bnbAmount
   });
-  console.log('Success:', result.txHash);
+  console.log('成功:', result.txHash);
 } catch (error) {
-  console.error('Transaction failed:', error.message);
-  // Handle error: insufficient balance, slippage exceeded, etc.
+  console.error('交易失败:', error.message);
+  // 处理错误：余额不足、滑点超限等
 }
 ```
 
-### 💡 Important: Amount Handling
+### 💡 重要：金额处理
 
-**All amount parameters MUST be `bigint` type:**
+**所有金额参数必须是 `bigint` 类型：**
 
 ```typescript
 import { ethers } from 'ethers';
 
-// ✅ Correct - Use ethers to convert amounts
-const bnbAmount = ethers.parseEther('0.1');           // BNB amount
-const tokenAmount = ethers.parseUnits('1000', 18);    // Token amount
-const gasPrice = ethers.parseUnits('5', 'gwei');      // Gas price
+// ✅ 正确 - 使用 ethers 转换金额
+const bnbAmount = ethers.parseEther('0.1');           // BNB 金额
+const tokenAmount = ethers.parseUnits('1000', 18);    // 代币金额
+const gasPrice = ethers.parseUnits('5', 'gwei');      // Gas 价格
 
-// ✅ Correct - Use bigint literal for simple values
+// ✅ 正确 - 对简单值使用 bigint 字面量
 const gasLimit = 500000n;
 const minAmount = 0n;
 
-// ❌ Wrong - Numbers and strings are not accepted
+// ❌ 错误 - 不接受数字和字符串
 fundsInBNB: 0.1        // ❌ TypeError
 fundsInBNB: '0.1'      // ❌ TypeError
 ```
 
-**Why bigint?**
-- Prevents precision loss in large numbers
-- Native blockchain amount representation (wei)
-- Type-safe calculations enforced by TypeScript
-- No confusion about decimal places
+**为什么使用 bigint？**
+- 防止大数字精度丢失
+- 原生区块链金额表示（wei）
+- TypeScript 强制类型安全计算
+- 不会混淆小数位数
 
-### 📘 TypeScript Support
+### 📘 TypeScript 支持
 
-The SDK is written in TypeScript and provides complete type definitions:
+SDK 使用 TypeScript 编写，提供完整的类型定义：
 
 ```typescript
 import {
@@ -371,7 +373,7 @@ import {
   TokenCreateEvent,
   TokenPurchaseEvent,
   TokenSaleEvent,
-  // Advanced features
+  // 高级功能
   Logger,
   LogLevel,
   PerformanceMonitor,
@@ -381,11 +383,11 @@ import {
 } from '@fnzero/four-trading-sdk';
 ```
 
-### 🚀 Advanced Features
+### 🚀 高级功能
 
-#### Performance Monitoring
+#### 性能监控
 
-Track operation latencies and identify bottlenecks:
+跟踪操作延迟并识别瓶颈：
 
 ```typescript
 import { PerformanceMonitor, Logger, LogLevel } from '@fnzero/four-trading-sdk';
@@ -393,7 +395,7 @@ import { PerformanceMonitor, Logger, LogLevel } from '@fnzero/four-trading-sdk';
 const logger = new Logger({ level: LogLevel.INFO });
 const perfMonitor = new PerformanceMonitor(logger);
 
-// Track async operations
+// 跟踪异步操作
 const result = await perfMonitor.trackAsync('buyToken', async () => {
   return await trading.buyToken({
     tokenAddress: '0xTokenAddress',
@@ -401,92 +403,92 @@ const result = await perfMonitor.trackAsync('buyToken', async () => {
   });
 });
 
-// Get statistics
+// 获取统计数据
 const stats = perfMonitor.getOperationStats('buyToken');
-console.log(`Average: ${stats.avgDuration}ms`);
-console.log(`P95: ${stats.p95Duration}ms`);
-console.log(`Success rate: ${(stats.successCount / stats.count * 100).toFixed(2)}%`);
+console.log(`平均耗时: ${stats.avgDuration}ms`);
+console.log(`P95延迟: ${stats.p95Duration}ms`);
+console.log(`成功率: ${(stats.successCount / stats.count * 100).toFixed(2)}%`);
 
-// Find slow operations
+// 查找慢操作
 const slowOps = perfMonitor.getSlowOperations(10);
 slowOps.forEach(op => {
   console.log(`${op.operationName}: ${op.duration}ms`);
 });
 ```
 
-#### Custom Logger
+#### 自定义日志
 
-Configure structured logging:
+配置结构化日志：
 
 ```typescript
 import { Logger, LogLevel } from '@fnzero/four-trading-sdk';
 
-// Create custom logger
+// 创建自定义logger
 const logger = new Logger({
   level: LogLevel.DEBUG,  // DEBUG | INFO | WARN | ERROR | NONE
-  prefix: '[MyApp]',
+  prefix: '[我的应用]',
   timestamp: true
 });
 
-// Use in trading SDK
+// 在trading SDK中使用
 const trading = new FourTrading({
   rpcUrl: 'https://bsc-dataseed.binance.org',
-  privateKey: 'your-private-key',
-  logger: logger  // Pass custom logger
+  privateKey: '你的私钥',
+  logger: logger  // 传入自定义logger
 });
 
-// Log levels
-logger.debug('Detailed debugging info');
-logger.info('General information');
-logger.warn('Warning message');
-logger.error('Error occurred');
+// 日志级别
+logger.debug('详细调试信息');
+logger.info('一般信息');
+logger.warn('警告消息');
+logger.error('发生错误');
 
-// Change log level dynamically
+// 动态更改日志级别
 logger.setLevel(LogLevel.WARN);
 ```
 
-#### Input Validation
+#### 输入验证
 
-Validate parameters before transactions:
+在交易前验证参数：
 
 ```typescript
 import { Validator } from '@fnzero/four-trading-sdk';
 
-// Validate addresses
+// 验证地址
 Validator.validateAddress(tokenAddress);
 
-// Validate amounts
+// 验证金额
 Validator.validateAmount(bnbAmount, 'bnbAmount', {
   min: ethers.parseEther('0.001'),
   max: ethers.parseEther('10')
 });
 
-// Validate slippage
-Validator.validateSlippage(1.5); // 1.5% - valid
-// Validator.validateSlippage(150); // Throws error
+// 验证滑点
+Validator.validateSlippage(1.5); // 1.5% - 有效
+// Validator.validateSlippage(150); // 抛出错误
 
-// Validate gas options
+// 验证gas选项
 Validator.validateGasOptions({
   gasLimit: 500000n,
   maxFeePerGas: ethers.parseUnits('5', 'gwei')
 });
 ```
 
-#### Cache Management
+#### 缓存管理
 
-Monitor and control caching:
+监控和控制缓存：
 
 ```typescript
-// Get cache statistics
+// 获取缓存统计
 const cacheStats = trading.priceCalculator.getCacheStats();
-console.log(`Cache size: ${cacheStats.size}/${cacheStats.capacity}`);
-console.log(`Utilization: ${cacheStats.utilizationPercent}%`);
+console.log(`缓存大小: ${cacheStats.size}/${cacheStats.capacity}`);
+console.log(`使用率: ${cacheStats.utilizationPercent}%`);
 
-// Clear cache when needed
+// 需要时清除缓存
 trading.priceCalculator.clearCache();
 ```
 
-#### Error Handling with Custom Error Types
+#### 使用自定义错误类型进行错误处理
 
 ```typescript
 import {
@@ -507,22 +509,22 @@ try {
   });
 } catch (error) {
   if (error instanceof InvalidAddressError) {
-    console.error('Invalid token address:', error.details);
+    console.error('无效的代币地址:', error.details);
   } else if (error instanceof InsufficientBalanceError) {
-    console.error('Not enough balance:', error.message);
+    console.error('余额不足:', error.message);
   } else if (error instanceof SlippageExceededError) {
-    console.error('Slippage too high:', error.details);
+    console.error('滑点过高:', error.details);
   } else if (error instanceof TransactionFailedError) {
-    console.error('Transaction failed:', error.txHash);
+    console.error('交易失败:', error.txHash);
   } else {
-    console.error('Unknown error:', error);
+    console.error('未知错误:', error);
   }
 }
 ```
 
-#### WebSocket Management
+#### WebSocket 管理
 
-Advanced WebSocket connection control:
+高级 WebSocket 连接控制：
 
 ```typescript
 import { WebSocketManager } from '@fnzero/four-trading-sdk';
@@ -534,68 +536,68 @@ const wsManager = new WebSocketManager({
   heartbeatEnabled: true
 });
 
-// Event handlers
+// 事件处理器
 wsManager.onConnected(() => {
-  console.log('WebSocket connected');
+  console.log('WebSocket 已连接');
 });
 
 wsManager.onDisconnected(() => {
-  console.log('WebSocket disconnected');
+  console.log('WebSocket 已断开');
 });
 
 wsManager.onError((error) => {
-  console.error('WebSocket error:', error);
+  console.error('WebSocket 错误:', error);
 });
 
-// Connect
+// 连接
 await wsManager.connect();
 
-// Get connection stats
+// 获取连接统计
 const stats = wsManager.getStats();
-console.log(`Connected: ${stats.connected}`);
-console.log(`Reconnect attempts: ${stats.reconnectAttempts}`);
+console.log(`已连接: ${stats.connected}`);
+console.log(`重连次数: ${stats.reconnectAttempts}`);
 
-// Cleanup
+// 清理
 await wsManager.destroy();
 ```
 
-### 📊 Performance Metrics
+### 📊 性能指标
 
-The SDK includes significant performance improvements:
+SDK 包含显著的性能改进：
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Token info query | 500ms | 1ms (cached) | **99.8% faster** |
-| RPC calls | Every query | Cached 30s | **70-80% reduction** |
-| Error diagnosis | Unclear | Typed errors | **90% faster** |
-| WebSocket reliability | Fails on disconnect | Auto-reconnect | **99.9% uptime** |
+| 指标 | 优化前 | 优化后 | 提升 |
+|------|--------|--------|------|
+| Token info 查询 | 500ms | 1ms (缓存) | **快 99.8%** |
+| RPC 调用 | 每次查询 | 缓存30秒 | **减少70-80%** |
+| 错误诊断 | 不明确 | 类型化错误 | **快90%** |
+| WebSocket 可靠性 | 断开即失败 | 自动重连 | **99.9%正常运行** |
 
-### 📋 Contract Information
+### 📋 合约信息
 
-- **Contract Address**: `0x5c952063c7fc8610FFDB798152D69F0B9550762b`
-- **Chain**: Binance Smart Chain (BSC)
-- **Chain ID**: 56
-- **Network**: Mainnet
-- **Block Explorer**: [BscScan](https://bscscan.com/address/0x5c952063c7fc8610FFDB798152D69F0B9550762b)
+- **合约地址**: `0x5c952063c7fc8610FFDB798152D69F0B9550762b`
+- **链**: 币安智能链（BSC）
+- **链 ID**: 56
+- **网络**: 主网
+- **区块浏览器**: [BscScan](https://bscscan.com/address/0x5c952063c7fc8610FFDB798152D69F0B9550762b)
 
-### 🔧 Requirements
+### 🔧 要求
 
 - Node.js >= 18.0.0
-- BSC RPC endpoint
-- Private key with BNB for gas fees
+- BSC RPC 端点
+- 用于支付 gas 费用的 BNB 私钥
 
-### 📄 License
+### 📄 许可证
 
-MIT License - see the [LICENSE](LICENSE) file for details
+MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
 
-### 🤝 Contributing
+### 🤝 贡献
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+欢迎贡献！请随时提交 Pull Request。
 
-### 📞 Support
+### 📞 支持
 
-- GitHub Issues: [Report a bug](https://github.com/0xfnzero/four-trading-sdk/issues)
-- Documentation: [Full API Documentation](https://github.com/0xfnzero/four-trading-sdk#readme)
+- GitHub Issues: [报告问题](https://github.com/0xfnzero/four-trading-sdk/issues)
+- 文档: [完整 API 文档](https://github.com/0xfnzero/four-trading-sdk#readme)
 
 ---
 
