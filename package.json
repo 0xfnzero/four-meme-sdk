@@ -1,12 +1,13 @@
 {
   "name": "@fnzero/four-trading-sdk",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "TypeScript SDK for trading tokens on the FOUR launch platform (BSC)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "README.zh-CN.md"
   ],
   "scripts": {
     "build": "tsc",
