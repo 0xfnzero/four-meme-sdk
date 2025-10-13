@@ -239,9 +239,9 @@ export class FourTrading {
 
       const txOptions = this.buildTxOptions(params.gas);
 
-      // Correct method signature: sellToken(token, amount, minFunds)
-      // The contract handles the simpler version without origin/fee parameters
-      const tx = await this.contract.sellToken(
+      // Use explicit function signature to avoid ambiguity with overloaded functions
+      // sellToken(address token, uint256 amount, uint256 minFunds)
+      const tx = await this.contract['sellToken(address,uint256,uint256)'](
         params.tokenAddress,
         amount,
         minFunds,
